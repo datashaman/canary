@@ -12,7 +12,24 @@
 */
 
 $router->get('/', function () {
-    return DB::table('requests')->get();
+    $all = DB::table('requests')
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    $averages = [];
+    $intervals = [5, 25, 75];
+
+    foreach ($intervals as $interval) {
+        $count = DB::table('requests')
+            ->where('created_at', '>=', DB::raw('DATE_SUB(CURRENT_TIMESTAMP, INTERVAL ' . $interval . ' minute)'))
+            ->count();
+        $averages[$interval] = round($count / $interval, 2);
+    }
+
+    return [
+        'averages' => $averages,
+        'all' => $all,
+    ];
 });
 
 $router->post('/', function (Illuminate\Http\Request $request) {
