@@ -11,10 +11,13 @@
 |
 */
 
-use Psr\Http\Message\RequestInterface;
-use Swop\GitHubWebHook\Security\SignatureValidator;
+use Illuminate\Http\Request;
 
-$validator = new SignatureValidator();
+function validateRequest(Request $request, string $secret): bool
+{
+    $signature = 'sha1=' . hash_hmac('sha1', $request->getContent(), $secret);
+    return hash_equals($signature, $request->header('X-Hub-Signature', ''));
+}
 
 $router->get('/', function () {
     $all = DB::table('requests')
@@ -37,14 +40,21 @@ $router->get('/', function () {
     ];
 });
 
-$router->post('/', function (RequestInterface $request) use ($validator) {
-    if ($validator->validate($request, env('APP_WEBHOOK_SECRET'))) {
-        $inserted = DB::table('requests')->insert(
-            $request->only('user', 'pull_request')
-        );
-
-        return $inserted ? 'OK' : 'ERR';
-    } else {
-        return response('FORBIDDEN', 403);
+$router->post('/', function (Request $request) {
+    if (
+        validateRequest($request, env('APP_WEBHOOK_SECRET'))
+        && $request->header('X-GitHub-Event') == 'issue_comment'
+        && $request->input('action') == 'created'
+        && starts_with($request->input('comment.body'), 'please build')
+        && DB::table('requests')->insert(
+            [
+                'user' => $request->input('sender.login'),
+                'pull_request' => $request->input('issue.html_url'),
+            ]
+        )
+    ) {
+        return 'OK';
     }
+
+    return response('ERR', 403);
 });
