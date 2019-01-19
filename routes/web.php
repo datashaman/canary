@@ -11,6 +11,12 @@
 |
 */
 
-$router->get('/', function () use ($router) {
-    return $router->app->version();
+$router->get('/', function () {
+    return DB::table('requests')->get();
+});
+
+$router->post('/', function (Illuminate\Http\Request $request) {
+    $inserted = DB::table('requests')->insert($request->only('user', 'pull_request'));
+
+    return $inserted ? 'OK' : 'ERR';
 });
