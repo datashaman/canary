@@ -11,6 +11,7 @@
 |
 */
 
+use Psr\Http\Message\RequestInterface;
 use Swop\GitHubWebHook\Security\SignatureValidator;
 
 $validator = new SignatureValidator();
@@ -36,7 +37,7 @@ $router->get('/', function () {
     ];
 });
 
-$router->post('/', function (Illuminate\Http\Request $request) use ($validator) {
+$router->post('/', function (RequestInterface $request) use ($validator) {
     if ($validator->validate($request, env('APP_WEBHOOK_SECRET'))) {
         $inserted = DB::table('requests')->insert(
             $request->only('user', 'pull_request')
