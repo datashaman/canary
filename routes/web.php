@@ -11,6 +11,10 @@
 |
 */
 
+use Swop\GitHubWebHook\Security\SignatureValidator;
+
+$validator = new SignatureValidator();
+
 $router->get('/', function () {
     $all = DB::table('requests')
         ->orderBy('created_at', 'desc')
@@ -32,8 +36,14 @@ $router->get('/', function () {
     ];
 });
 
-$router->post('/', function (Illuminate\Http\Request $request) {
-    $inserted = DB::table('requests')->insert($request->only('user', 'pull_request'));
+$router->post('/', function (Illuminate\Http\Request $request) use ($validator) {
+    if ($validator->validate($request, env('APP_WEBHOOK_SECRET'))) {
+        $inserted = DB::table('requests')->insert(
+            $request->only('user', 'pull_request')
+        );
 
-    return $inserted ? 'OK' : 'ERR';
+        return $inserted ? 'OK' : 'ERR';
+    } else {
+        return response('FORBIDDEN', 403);
+    }
 });
