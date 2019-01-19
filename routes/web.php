@@ -41,9 +41,12 @@ $router->get('/', function () {
 });
 
 $router->post('/', function (Request $request) {
+    if (!validateRequest($request, env('APP_WEBHOOK_SECRET'))) {
+        return response('FORBIDDEN', 403);
+    }
+
     if (
-        validateRequest($request, env('APP_WEBHOOK_SECRET'))
-        && $request->header('X-GitHub-Event') == 'issue_comment'
+        $request->header('X-GitHub-Event') == 'issue_comment'
         && $request->input('action') == 'created'
         && starts_with($request->input('comment.body'), 'please build')
         && DB::table('requests')->insert(
@@ -56,5 +59,5 @@ $router->post('/', function (Request $request) {
         return 'OK';
     }
 
-    return response('ERR', 403);
+    return '';
 });
