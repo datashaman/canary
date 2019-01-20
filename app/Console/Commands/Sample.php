@@ -15,13 +15,13 @@ class Sample extends Command
     /**
      * @var string
      */
-    protected $description = 'Sample requests.';
+    protected $description = 'Sample events.';
 
     public function handle()
     {
         $interval = (int) $this->argument('interval');
 
-        $count = DB::table('requests')
+        $count = DB::table('events')
             ->where(
                 'created_at',
                 '>=',

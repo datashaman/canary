@@ -76,19 +76,46 @@ $router->post('/', function (Request $request) {
         return response('FORBIDDEN', 403);
     }
 
-    if (
-        $request->header('X-GitHub-Event') == 'issue_comment'
-        && $request->input('action') == 'created'
-        && starts_with($request->input('comment.body'), 'please build')
-        && DB::table('requests')->insert(
-            [
-                'user' => $request->input('sender.login'),
-                'pull_request' => $request->input('issue.html_url'),
-            ]
-        )
-    ) {
-        return 'OK';
-    }
+    $event = $request->header('X-GitHub-Event');
+    $action = $request->input('action');
 
-    return '';
+    $filters = include 'filters.php';
+
+    DB::table('configs')
+        ->where('event', 'like', "%$event%")
+        ->when(
+            $action,
+            function ($q) use ($action) {
+                return $q
+                    ->where(
+                        function ($q1) use ($action) {
+                            $q1
+                                ->where('action', 'like', "%$action%")
+                                ->orWhereNull('action');
+                        }
+                    );
+            }
+        )
+        ->get()
+        ->filter(
+            function ($config) use ($configs, $request) {
+                if (isset($configs[$config['id']])) {
+                    return $configs[$config['id']]($request);
+                }
+                return true;
+            }
+        )
+        ->each(
+            function ($config) use ($event, $request) {
+                DB::table('events')->insert(
+                    [
+                        'config' => $config['id'],
+                        'event' => $event,
+                        'payload' => $request->all(),
+                    ]
+                );
+            }
+        );
+
+    return 'OK';
 });
