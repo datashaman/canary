@@ -10,6 +10,7 @@
             $(function () {
                 var chart;
                 var options = {
+                    title: 'Please Build',
                     vAxis: {
                         minValue: 0
                     }
