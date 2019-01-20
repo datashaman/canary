@@ -8,7 +8,19 @@
         <script src="https://www.gstatic.com/charts/loader.js"></script>
         <script>
             $(function () {
-                function drawChart()
+                var chart;
+                var options = {
+                    vAxis: {
+                        minValue: 0
+                    }
+                };
+
+                function createChart()
+                {
+                    chart = new google.visualization.ColumnChart(document.getElementById('chart'));
+                }
+
+                function refreshData()
                 {
                     var jsonData = $.ajax({
                         url: '/samples',
@@ -20,8 +32,14 @@
                     }).responseText;
 
                     var data = new google.visualization.DataTable(jsonData);
-                    var chart = new google.visualization.ColumnChart(document.getElementById('chart'));
-                    chart.draw(data);
+                    chart.draw(data, options);
+                }
+
+                function drawChart()
+                {
+                    createChart();
+                    refreshData();
+                    setInterval(refreshData, 60000);
                 }
 
                 google.charts.load('current', {'packages':['corechart']});
