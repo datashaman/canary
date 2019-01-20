@@ -12,6 +12,7 @@
 */
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 function validateRequest(Request $request, string $secret): bool
 {
@@ -19,24 +20,54 @@ function validateRequest(Request $request, string $secret): bool
     return hash_equals($signature, $request->header('X-Hub-Signature', ''));
 }
 
-$router->get('/', function () {
-    $all = DB::table('requests')
-        ->orderBy('created_at', 'desc')
-        ->get();
+$router->get('/', function (Request $request) {
+    return view('dashboard');
+});
 
-    $averages = [];
-    $intervals = [5, 25, 75];
+$router->get('/samples', function (Request $request) {
+    $interval = $request->input('interval');
 
-    foreach ($intervals as $interval) {
-        $count = DB::table('requests')
-            ->where('created_at', '>=', DB::raw('DATE_SUB(CURRENT_TIMESTAMP, INTERVAL ' . $interval . ' minute)'))
-            ->count();
-        $averages[$interval] = round($count / $interval, 2);
-    }
+    $cols = [
+        [
+            'id' => 'created',
+            'label' => 'Created',
+            'type' => 'datetime',
+        ],
+        [
+            'id' => 'count',
+            'label' => 'Count',
+            'type' => 'number',
+        ],
+    ];
+
+    $rows = DB::table('samples')
+        ->select('created_at', 'count')
+        ->where('created_at', '>=', DB::raw('DATE_SUB(CURRENT_TIMESTAMP, INTERVAL ' . $interval . ' minute)'))
+        ->orderBy('created_at')
+        ->get()
+        ->map(
+            function ($sample) {
+                $createdAt = Carbon::parse($sample->created_at);
+                $month = $createdAt->month - 1;
+
+                return [
+                    'c' => [
+                        [
+                            'v' => "Date({$createdAt->year}, {$month}, {$createdAt->day}, {$createdAt->hour}, {$createdAt->minute}, {$createdAt->second})",
+                            'f' => $createdAt->toDateTimeString(),
+                        ],
+                        [
+                            'v' => $sample->count,
+                        ],
+                    ],
+                ];
+            }
+        )
+        ->all();
 
     return [
-        'averages' => $averages,
-        'all' => $all,
+        'cols' => $cols,
+        'rows' => $rows,
     ];
 });
 
