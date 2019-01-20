@@ -15,35 +15,31 @@
                     }
                 };
 
-                function createChart()
-                {
-                    chart = new google.visualization.ColumnChart(document.getElementById('chart'));
-                }
-
                 function refreshData()
                 {
-                    var jsonData = $.ajax({
+                    $.ajax({
                         url: '/samples',
                         data: {
                             interval: 60
                         },
-                        dataType: 'json',
-                        async: false
-                    }).responseText;
-
-                    var data = new google.visualization.DataTable(jsonData);
-                    chart.draw(data, options);
+                        dataType: 'json'
+                    }).done(function (data, status, xhr) {
+                        chart.draw(
+                            new google.visualization.DataTable(data),
+                            options
+                        );
+                        setTimeout(refreshData, 15000);
+                    });
                 }
 
-                function drawChart()
+                function createChart()
                 {
-                    createChart();
+                    chart = new google.visualization.ColumnChart(document.getElementById('chart'));
                     refreshData();
-                    setInterval(refreshData, 60000);
                 }
 
                 google.charts.load('current', {'packages':['corechart']});
-                google.charts.setOnLoadCallback(drawChart);
+                google.charts.setOnLoadCallback(createChart);
             });
         </script>
     </head>
