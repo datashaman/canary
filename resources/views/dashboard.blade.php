@@ -29,7 +29,6 @@
                             new google.visualization.DataTable(data),
                             options
                         );
-                        setTimeout(refreshData, 15000);
                     });
                 }
 
@@ -37,6 +36,7 @@
                 {
                     chart = new google.visualization.ColumnChart(document.getElementById('chart'));
                     refreshData();
+                    setInterval(refreshData, 15000);
                 }
 
                 google.charts.load('current', {'packages':['corechart']});
